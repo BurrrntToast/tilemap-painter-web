@@ -1,103 +1,206 @@
-/* ============  Root variables  ============ */
+/* =========================================================
+ *            Tilemap Editor – modern / minimal
+ * ========================================================= */
+
+/* ----------  Theme variables  ---------- */
 :root {
+    /* grid parameters – JS rewrites rows / cols / cell‑size */
     --rows:       15;
     --cols:       16;
     --cell-size:  32px;
-    --current-colour: rgba(0,0,0,0);
+  
+    /* UI theme */
+    --ghost-colour: rgba(0, 0, 0, 0);
+    --page-bg:      #fafafa;
+    --card-bg:      #ffffff;
+    --border-col:   #e0e0e0;
+    --text-main:    #222222;
+  
+    /* export / copy button */
+    --red:          #e74c3c;   /* mid‑tone red */
+    --red-hover:    #cf3c2f;
   }
+  
+  /* ----------  Global reset  ---------- */
+  *,
+  *::before,
+  *::after { box-sizing: border-box; }
   
   body {
-    font-family: system-ui, sans-serif;
-    background: #f5f5f5;
-    min-height: 100vh;
-    display: grid;
-    place-content: center;
     margin: 0;
-  }
-  
-  #editor { text-align: center; }
-  
-  /* ----------   Workspace layout   ---------- */
-  #workspace {
+    min-height: 100vh;
     display: flex;
-    gap: 1rem;
+    align-items: center;
     justify-content: center;
-    align-items: flex-start;
-    margin-bottom: 1rem;
+    padding: 2rem;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+                 "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--page-bg);
+    color: var(--text-main);
   }
   
-  /* ----------   Level Tilemap   ---------- */
+  #editor {
+    text-align: center;
+    max-width: 960px;
+    width: 100%;
+  }
+  
+  /* =========================================================
+   *                     WORKSPACE LAYOUT
+   * ========================================================= */
+  
+  /*  Centre the tile‑map itself with margin auto …  
+      …then absolutely dock the options panel to its right.   */
+  #workspace {
+    position: relative;
+    width: max-content;       /* = tile‑map width only          */
+    margin: 0 auto 2rem;      /* auto centres the workspace     */
+  }
+  
+  /* options panel sits flush to the right edge of the map */
+  #options {
+    position: absolute;
+    top: 0;
+    left: calc(100% + 2rem);  /* 2 rem gap from the grid        */
+  }
+  
+  /* ----------  Level Tilemap  ---------- */
   .grid {
     display: grid;
     grid-template-rows: repeat(var(--rows), var(--cell-size));
     grid-template-columns: repeat(var(--cols), var(--cell-size));
-    gap: 2px;
+    gap: 4px;                     /* breathing room between squares */
+    touch-action: none;           /* avoids double‑tap zoom on mobiles */
   }
   
   .cell {
     width:  var(--cell-size);
     height: var(--cell-size);
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-col);
+    background: #ffffff;
     display: flex;
-    place-content: center;
     align-items: center;
+    justify-content: center;
     font-size: 0.8rem;
+    font-weight: 500;
     user-select: none;
-    outline: 2px solid transparent;   /* ghost */
-    transition: outline-color 50ms;
+    outline: 2px solid transparent;      /* ghost outline */
+    transition: outline-color 40ms;
   }
   
-  /* hide numbers / colours when options unchecked */
+  /* hide numbers / colours when toggled off */
   .hide-numbers .cell { color: transparent; }
   .hide-colours .cell { background-color: transparent !important; }
   
-  /* ----------   Options panel   ---------- */
+  /* ----------  Options side‑panel  ---------- */
   .panel {
-    background: #ffffff;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    text-align: left;
+    background: var(--card-bg);
+    border: 1px solid var(--border-col);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 4px 8px rgb(0 0 0 / 4%);
+    min-width: 170px;
   }
-  .panel h2 { margin: 0 0 0.5rem; font-size: 1rem; }
-  .panel label { display: block; margin-bottom: 0.4rem; cursor: pointer; }
   
-  /* ----------   Palette   ---------- */
-  #palette { margin-bottom: 1rem; }
+  .panel h2 {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  
+  .panel label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    font-size: 0.894rem;
+  }
+  
+  /* Make the panel stack underneath on narrow screens */
+  @media (max-width: 650px) {
+    #workspace {
+      width: 100%;                /* let map be full‑width centred */
+    }
+    #options {
+      position: static;           /* back into normal flow         */
+      margin: 1.5rem auto 0;      /* centred under the grid        */
+    }
+  }
+  
+  /* =========================================================
+   *                    PALETTE (Tiles)
+   * ========================================================= */
+  #palette {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+  }
   
   .tile-btn {
     width: 32px;
     height: 32px;
-    margin: 0 4px;
     border: none;
-    border-radius: 4px;
-    font-weight: bold;
+    border-radius: 6px;
+    font-weight: 600;
     cursor: pointer;
-    opacity: 0.8;
+    box-shadow: 0 0 0 1px var(--border-col);
+    transition: transform 100ms, box-shadow 100ms;
+    opacity: 0.85;
   }
-  .tile-btn.selected { outline: 2px solid #000; }
   
-  /* ----------   Export area   ---------- */
+  .tile-btn:hover { transform: scale(1.1); }
+  
+  .tile-btn.selected { box-shadow: 0 0 0 2px #000 inset; }
+  
+  /* =========================================================
+   *                EXPORT / COPY TO CLIPBOARD
+   * ========================================================= */
+  #export-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
   #export-area textarea {
-    resize: vertical;
-    margin-bottom: 0.5rem;
     width: 100%;
-    max-width: 520px;
+    max-width: 600px;
+    min-height: 150px;
+    padding: 0.75rem 1rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    border: 1px solid var(--border-col);
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 3%) inset;
+    resize: vertical;
   }
   
   #copy {
-    padding: 0.4rem 0.8rem;
+    background: var(--red);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.65rem 1.4rem;
+    font-size: 0.92rem;
     font-weight: 600;
     cursor: pointer;
+    transition: background 150ms;
   }
   
-  /* ----------   Visually‑hidden helper   ---------- */
+  #copy:hover { background: var(--red-hover); }
+  
+  /* =========================================================
+   *                ACCESSIBILITY HELPERS
+   * ========================================================= */
   .sr-only {
     position: absolute !important;
     width: 1px; height: 1px;
-    padding: 0; overflow: hidden;
-    clip: rect(0 0 0 0); white-space: nowrap;
-    border: 0;
+    padding: 0; overflow: hidden; clip: rect(0 0 0 0);
+    white-space: nowrap; border: 0;
   }
   
