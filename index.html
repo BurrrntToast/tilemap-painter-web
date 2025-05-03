@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Tilemap Editor</title>
+    <!-- Link to the external stylesheet -->
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <main class="editor-wrapper">
+        <!-- Level Tilemap -->
+        <section id="level" class="tilemap" aria-label="Level Tilemap"></section>
+
+        <!-- Tiles palette -->
+        <section id="palette" class="tiles" aria-label="Tiles Palette"></section>
+
+        <!-- Currently‑selected tile indicator -->
+        <p id="current-selected" class="selected-indicator">Current tile: <span>0</span></p>
+
+        <!-- Export area -->
+        <section class="export-area">
+            <button id="export-btn" class="action">Export</button>
+            <button id="copy-btn" class="action">Copy</button>
+            <textarea id="output" rows="6" readonly placeholder="Exported data will appear here…"></textarea>
+        </section>
+    </main>
+
+    <!-- Simple, inline JavaScript for interaction (kept separate from CSS as requested) -->
+    <script>
+        /*** CONFIG – tweak these two numbers to change grid size globally ***/
+        const ROWS = 15;
+        const COLS = 16;
+
+        /*** Basic pastel palette for 10 tiles (0‑9) ***/
+        const COLORS = [
+            '#f8d7da', // 0
+            '#d4edda', // 1
+            '#d1ecf1', // 2
+            '#fff3cd', // 3
+            '#e2d5f8', // 4
+            '#fbe8d4', // 5
+            '#d4f4fa', // 6
+            '#fdebd0', // 7
+            '#f2e1f1', // 8
+            '#d6d8db'  // 9
+        ];
+
+        /***** Build the UI *****/
+        const levelEl   = document.getElementById('level');
+        const paletteEl = document.getElementById('palette');
+        const currentEl = document.querySelector('#current-selected span');
+        const outputEl  = document.getElementById('output');
+
+        // 2‑D array that stores tile values (all start as 0)
+        const data = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+
+        // ----- Helper: returns a div representing one grid cell -----
+        function createCell(row, col) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.dataset.row = row;
+            cell.dataset.col = col;
+            cell.style.background = COLORS[0]; // default colour 0
+            return cell;
+        }
+
+        // Build level grid
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                levelEl.appendChild(createCell(r, c));
+            }
+        }
+
+        // Build palette row
+        for (let i = 0; i < 10; i++) {
+            const t = document.createElement('div');
+            t.className = 'tile';
+            t.dataset.tile = i;
+            t.textContent = i;
+            t.style.background = COLORS[i];
+            if (i === 0) t.classList.add('selected'); // tile 0 pre‑selected
+            paletteEl.appendChild(t);
+        }
+
+        /***** Interaction logic *****/
+        let selectedTile = 0;
+        let isPainting   = false;
+
+        // Select a tile from palette
+        paletteEl.addEventListener('click', (e) => {
+            const tile = e.target.closest('.tile');
+            if (!tile) return;
+            // Update selection visuals
+            paletteEl.querySelector('.selected')?.classList.remove('selected');
+            tile.classList.add('selected');
+            selectedTile = +tile.dataset.tile;
+            currentEl.textContent = selectedTile;
+        });
+
+        // Paint handlers
+        const paint = (cell) => {
+            if (!cell) return;
+            const r = +cell.dataset.row;
+            const c = +cell.dataset.col;
+            data[r][c] = selectedTile;
+            cell.style.background = COLORS[selectedTile];
+            cell.classList.remove('ghost');
+        };
+
+        levelEl.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return; // Only left click
+            isPainting = true;
+            paint(e.target.closest('.cell'));
+        });
+
+        levelEl.addEventListener('mouseover', (e) => {
+            if (isPainting) paint(e.target.closest('.cell'));
+            else handleGhost(e, true);
+        });
+
+        levelEl.addEventListener('mouseout', (e) => handleGhost(e, false));
+
+        document.addEventListener('mouseup', () => isPainting = false);
+
+        /** Hover ghost effect (applies light opacity of selected colour) */
+        function handleGhost(e, add) {
+            const cell = e.target.closest('.cell');
+            if (!cell) return;
+            if (add) {
+                cell.classList.add('ghost');
+                cell.style.setProperty('--ghost-color', COLORS[selectedTile]);
+            } else {
+                cell.classList.remove('ghost');
+            }
+        }
+
+        /*** Export to comma‑separated string in row‑major order ***/
+        document.getElementById('export-btn').addEventListener('click', () => {
+            const rows = data.map(row => row.join(','));
+            outputEl.value = rows.join('\n');
+        });
+
+        /*** Copy to clipboard ***/
+        document.getElementById('copy-btn').addEventListener('click', async () => {
+            if (!outputEl.value) return;
+            try {
+                await navigator.clipboard.writeText(outputEl.value);
+                alert('Copied to clipboard!');
+            } catch {
+                alert('Copy failed – please copy manually.');
+            }
+        });
+    </script>
+</body>
+</html>
